@@ -40,8 +40,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for _, data := range *accouts {
-		log.Printf("%s", data.Dn)
+	// diff
+	diff, err1 := ldapAccount.Diff(accouts, accouts)
+	if err1 != nil {
+		log.Fatal(err)
 	}
 
+	for _, data := range diff[CreateKey] {
+		log.Printf("[%s]%s", CreateKey, data.Dn)
+	}
+	for _, data := range diff[UpdateKey] {
+		log.Printf("[%s]%s", UpdateKey, data.Dn)
+	}
+	for _, data := range diff[DeleteKey] {
+		log.Printf("[%s]%s", DeleteKey, data.Dn)
+	}
 }
