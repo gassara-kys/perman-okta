@@ -27,9 +27,9 @@ type LdapAccount struct {
 	Descriptions   []string `json:"descriptions"`
 }
 
-// OutJSON jsonファイルに吐き出します
-func (ldapAccount LdapAccount) OutJSON(fileNm string, entries []*ldap.Entry) (err error) {
-	var accounts = []LdapAccount{}
+// Convert ldapsearchの結果をLdapAccount型に変換します。
+func (ldapAccount LdapAccount) Convert(entries []*ldap.Entry) *[]LdapAccount {
+	accounts := []LdapAccount{}
 	for _, entry := range entries {
 		var account = LdapAccount{}
 		account.Dn = entry.DN
@@ -43,6 +43,12 @@ func (ldapAccount LdapAccount) OutJSON(fileNm string, entries []*ldap.Entry) (er
 		}
 		accounts = append(accounts, account)
 	}
+	return &accounts
+
+}
+
+// OutJSON jsonファイルに吐き出します
+func (ldapAccount LdapAccount) OutJSON(fileNm string, accounts *[]LdapAccount) (err error) {
 
 	jsonBytes, err := json.MarshalIndent(accounts, "", "  ")
 	if err != nil {

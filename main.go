@@ -27,21 +27,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// output ldap data to json file
+	// get ldap datas
 	var ldapAccount = LdapAccount{}
-	if err := ldapAccount.OutJSON(fileNm, result.Entries); err != nil {
-		log.Fatal(err)
-	}
-
-	// load from json
-	accouts, err := ldapAccount.LoadJSON(fileNm)
+	serverData := ldapAccount.Convert(result.Entries)
+	localData, err := ldapAccount.LoadJSON(fileNm)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// diff
-	diff, err1 := ldapAccount.Diff(accouts, accouts)
+	diff, err1 := ldapAccount.Diff(localData, serverData)
 	if err1 != nil {
 		log.Fatal(err)
 	}
@@ -54,5 +49,10 @@ func main() {
 	}
 	for _, data := range diff[DeleteKey] {
 		log.Printf("[%s]%s", DeleteKey, data.Dn)
+	}
+
+	// output JSON file
+	if err := ldapAccount.OutJSON(fileNm, serverData); err != nil {
+		log.Fatal(err)
 	}
 }

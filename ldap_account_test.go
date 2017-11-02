@@ -32,7 +32,7 @@ var testAccounts = []LdapAccount{
 	},
 }
 
-func TestJSON(t *testing.T) {
+func TestConvertAndJSON(t *testing.T) {
 
 	var entries []*ldap.Entry
 	for _, data := range testAccounts {
@@ -47,10 +47,14 @@ func TestJSON(t *testing.T) {
 		}
 		entries = append(entries, &entry)
 	}
+
 	var ldapAccount = LdapAccount{}
 
+	// Convert
+	convertData := ldapAccount.Convert(entries)
+
 	// OutJSON
-	err := ldapAccount.OutJSON(testFileNm, entries)
+	err := ldapAccount.OutJSON(testFileNm, convertData)
 	if err != nil {
 		t.Errorf("ldapAccount.OutJSON exec failed: file: %s, data: %v", testFileNm, entries)
 	}
