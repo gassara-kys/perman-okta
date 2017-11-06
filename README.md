@@ -3,9 +3,9 @@
 ## export ldap env
 
 ```bash
-$ export LDAP_HOST="ldap.amb.a4c.jp"
-$ export BASE_DN="ou=ND,dc=cyberagent,dc=co,dc=jp"
-$ export FILTER_STRING="(uid=ogasawara_kiyoshi)"
+$ export LDAP_HOST="localhost"
+$ export BASE_DN="dc=example,dc=com"
+$ export FILTER_STRING="(uid=hogehoge)"
 ```
 
 ## run

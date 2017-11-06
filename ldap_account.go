@@ -80,6 +80,7 @@ func (ldapAccount LdapAccount) Diff(old, new *[]LdapAccount) (result map[string]
 	result = make(map[string][]LdapAccount)
 	commonLdapData := make(map[string]LdapAccount)
 
+	// oldとnewで同一DNの更新をチェック、差分がある場合は更新リストに追加
 	for _, oldData := range *old {
 		for _, newData := range *new {
 			if oldData.Dn != newData.Dn {
@@ -92,11 +93,13 @@ func (ldapAccount LdapAccount) Diff(old, new *[]LdapAccount) (result map[string]
 			break
 		}
 	}
+	// old側にしか存在しないデータは削除リストに追加
 	for _, data := range *old {
 		if _, ok := commonLdapData[data.Dn]; !ok {
 			result[DeleteKey] = append(result[DeleteKey], data)
 		}
 	}
+	// new側にしか存在しないデータは新規作成リストに追加
 	for _, data := range *new {
 		if _, ok := commonLdapData[data.Dn]; !ok {
 			result[CreateKey] = append(result[CreateKey], data)
