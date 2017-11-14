@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"os"
 )
@@ -15,28 +16,31 @@ const (
 func main() {
 	// ldapsearch
 	ldapClient := LdapClient{
-		os.Getenv("LDAP_HOST"),
-		os.Getenv("BASE_DN"),
-		os.Getenv("FILTER_STRING"),
-		[]string{"dn", "uid", "email", "employeeNumber", "description"},
-		noSizeLimit,
-		noTimeLimit,
-		noTypeOnly,
+		Host:       os.Getenv("LDAP_HOST"),
+		BaseDn:     os.Getenv("BASE_DN"),
+		Filter:     os.Getenv("FILTER_STRING"),
+		Attributes: []string{"dn", "uid", "email", "employeeNumber", "description"},
+		SizeLimit:  noSizeLimit,
+		TimeLimit:  noTimeLimit,
+		TypeOnly:   noTypeOnly,
 	}
 	result, err := ldapClient.Search()
 	if err != nil {
 		log.Fatal(err)
 	}
 	// get ldap datas
-	var ldapAccount = LdapAccount{}
-	serverData := ldapAccount.Convert(result.Entries)
-	localData, err := ldapAccount.LoadJSON(fileNm)
+	var account = Account{}
+	serverData := account.ConvertFromLdap(result.Entries)
+	if len(*serverData) == 0 {
+		log.Fatal("LDAP Server Account is 0...") // LDAPサーバーのアカウント0件は異常終了にする
+	}
+	localData, err := account.LoadJSON(fileNm)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// diff
-	diff, err1 := ldapAccount.Diff(localData, serverData)
+	diff, err1 := account.Diff(localData, serverData)
 	if err1 != nil {
 		log.Fatal(err)
 	}
@@ -52,7 +56,23 @@ func main() {
 	}
 
 	// output JSON file
-	if err := ldapAccount.OutJSON(fileNm, serverData); err != nil {
+	if err := account.OutJSON(fileNm, serverData); err != nil {
 		log.Fatal(err)
 	}
+
+	// Okta API
+	var oktaClient = OktaClient{
+		FQDN:   os.Getenv("OKTA_FQDN"),
+		APIKEY: os.Getenv("OKTA_APIKEY"),
+	}
+	// oktaUser, oktaErr := oktaClient.GetUser("azuma_kazuhiro@cyberagent.co.jp")
+	oktaUser, oktaErr := oktaClient.GetUser("no_user@cyberagent.co.jp")
+	if oktaErr != nil {
+		log.Fatal(oktaErr)
+	}
+
+	jsonByte, _ := json.MarshalIndent(oktaUser, "", "  ")
+	log.Printf("user count: %d", len(*oktaUser))
+	log.Printf("%s", jsonByte)
+
 }

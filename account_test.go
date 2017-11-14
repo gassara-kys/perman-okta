@@ -8,7 +8,7 @@ import (
 
 const testFileNm = "tmp/test.json"
 
-var testAccounts = []LdapAccount{
+var testAccounts = []Account{
 	{
 		Dn:             "uid=aaa_user,dc=example,dc=com",
 		UID:            "aaa_user",
@@ -48,24 +48,24 @@ func TestConvertAndJSON(t *testing.T) {
 		entries = append(entries, &entry)
 	}
 
-	var ldapAccount = LdapAccount{}
+	var account = Account{}
 
 	// Convert
-	convertData := ldapAccount.Convert(entries)
+	convertData := account.Convert(entries)
 
 	// OutJSON
-	err := ldapAccount.OutJSON(testFileNm, convertData)
+	err := account.OutJSON(testFileNm, convertData)
 	if err != nil {
-		t.Errorf("ldapAccount.OutJSON exec failed: file: %s, data: %v", testFileNm, entries)
+		t.Errorf("account.OutJSON exec failed: file: %s, data: %v", testFileNm, entries)
 	}
 
 	// LoadJSON
-	accouts, err := ldapAccount.LoadJSON(testFileNm)
+	accounts, err := account.LoadJSON(testFileNm)
 	if err != nil {
-		t.Errorf("ldapAccount.LoadJSON exec failed: file: %s", testFileNm)
+		t.Errorf("account.LoadJSON exec failed: file: %s", testFileNm)
 	}
 
-	for idx, data := range *accouts {
+	for idx, data := range *accounts {
 		if testAccounts[idx].Dn != data.Dn ||
 			testAccounts[idx].UID != data.UID ||
 			testAccounts[idx].Email != data.Email ||
@@ -76,28 +76,28 @@ func TestConvertAndJSON(t *testing.T) {
 }
 
 func TestDiff(t *testing.T) {
-	var ldapAccount = LdapAccount{}
+	var account = Account{}
 
 	// Pattern: [No Diff]
 	var testOld = testAccounts
 	var testNew = testAccounts
 
-	result, err := ldapAccount.Diff(&testOld, &testNew)
+	result, err := account.Diff(&testOld, &testNew)
 	if err != nil {
-		t.Errorf("ldapAccount.Diff [No Diff]exec fatal:%v", err)
+		t.Errorf("account.Diff [No Diff]exec fatal:%v", err)
 	}
 	if len(result[UpdateKey]) != 0 {
-		t.Errorf("ldapAccount.Diff [No Diff]update list exists: %v", len(result[UpdateKey]))
+		t.Errorf("account.Diff [No Diff]update list exists: %v", len(result[UpdateKey]))
 	}
 	if len(result[CreateKey]) != 0 {
-		t.Errorf("ldapAccount.Diff [No Diff]create list exists: %v", len(result[CreateKey]))
+		t.Errorf("account.Diff [No Diff]create list exists: %v", len(result[CreateKey]))
 	}
 	if len(result[DeleteKey]) != 0 {
-		t.Errorf("ldapAccount.Diff [No Diff]delete list exists: %v", len(result[DeleteKey]))
+		t.Errorf("account.Diff [No Diff]delete list exists: %v", len(result[DeleteKey]))
 	}
 
 	// Pattern: [Modify]
-	testOld = []LdapAccount{
+	testOld = []Account{
 		{
 			Dn:             "uid=aaa_user,dc=example,dc=com",
 			UID:            "aaa_user",
@@ -120,52 +120,52 @@ func TestDiff(t *testing.T) {
 			Descriptions:   []string{"desc 0001", "desc 0002"}, // mod
 		},
 	}
-	result, err = ldapAccount.Diff(&testOld, &testNew)
+	result, err = account.Diff(&testOld, &testNew)
 	if err != nil {
-		t.Errorf("ldapAccount.Diff [Modify]exec fatal:%v", err)
+		t.Errorf("account.Diff [Modify]exec fatal:%v", err)
 	}
 	if len(result[UpdateKey]) != 2 {
-		t.Errorf("ldapAccount.Diff [Modify]update list count wrong: %d", len(result[UpdateKey]))
+		t.Errorf("account.Diff [Modify]update list count wrong: %d", len(result[UpdateKey]))
 	}
 	for _, data := range result[UpdateKey] {
 		if data.Dn != "uid=bbb_user,dc=example,dc=com" && data.Dn != "uid=ccc_user,dc=example,dc=com" {
-			t.Errorf("ldapAccount.Diff [Modify]update data wrong: %v", data)
+			t.Errorf("account.Diff [Modify]update data wrong: %v", data)
 		}
 	}
 
 	// Pattern: Create Delete
-	testOld = append(testOld, LdapAccount{
+	testOld = append(testOld, Account{
 		Dn:             "uid=ddd_user,dc=example,dc=com",
 		UID:            "ddd_user",
 		Email:          "ddd_user@example.com",
 		EmployeeNumber: "EMP_NO004",
 		Descriptions:   []string{"desc_ddd"},
 	})
-	testNew = append(testNew, LdapAccount{
+	testNew = append(testNew, Account{
 		Dn:             "uid=eee_user,dc=example,dc=com",
 		UID:            "eee_user",
 		Email:          "eee_user@example.com",
 		EmployeeNumber: "EMP_NO005",
 		Descriptions:   []string{"desc_eee"},
 	})
-	result, err = ldapAccount.Diff(&testOld, &testNew)
+	result, err = account.Diff(&testOld, &testNew)
 	if err != nil {
-		t.Errorf("ldapAccount.Diff [Create Delete]exec fatal:%v", err)
+		t.Errorf("account.Diff [Create Delete]exec fatal:%v", err)
 	}
 	if len(result[UpdateKey]) != 2 {
-		t.Errorf("ldapAccount.Diff [Create Delete]update list count wrong: %d", len(result[UpdateKey]))
+		t.Errorf("account.Diff [Create Delete]update list count wrong: %d", len(result[UpdateKey]))
 	}
 	if len(result[CreateKey]) != 1 {
-		t.Errorf("ldapAccount.Diff [Create Delete]create list count wrong: %d", len(result[CreateKey]))
+		t.Errorf("account.Diff [Create Delete]create list count wrong: %d", len(result[CreateKey]))
 	}
 	if result[CreateKey][0].Dn != "uid=eee_user,dc=example,dc=com" {
-		t.Errorf("ldapAccount.Diff [Create Delete]create data wrong: %v", result[CreateKey][0])
+		t.Errorf("account.Diff [Create Delete]create data wrong: %v", result[CreateKey][0])
 	}
 	if len(result[DeleteKey]) != 1 {
-		t.Errorf("ldapAccount.Diff [Create Delete]delete list count wrong: %d", len(result[DeleteKey]))
+		t.Errorf("account.Diff [Create Delete]delete list count wrong: %d", len(result[DeleteKey]))
 	}
 	if result[DeleteKey][0].Dn != "uid=ddd_user,dc=example,dc=com" {
-		t.Errorf("ldapAccount.Diff [Create Delete]delete data wrong: %v", result[DeleteKey][0])
+		t.Errorf("account.Diff [Create Delete]delete data wrong: %v", result[DeleteKey][0])
 	}
 
 }

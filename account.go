@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"reflect"
 
 	"gopkg.in/ldap.v2"
@@ -18,8 +17,8 @@ const (
 	DeleteKey = "DELETE"
 )
 
-// LdapAccount Permanアカウント
-type LdapAccount struct {
+// Account Permanアカウント
+type Account struct {
 	Dn             string   `json:"dn"`
 	UID            string   `json:"uid"`
 	Email          string   `json:"email"`
@@ -27,11 +26,11 @@ type LdapAccount struct {
 	Descriptions   []string `json:"descriptions"`
 }
 
-// Convert ldapsearchの結果をLdapAccount型に変換します。
-func (ldapAccount LdapAccount) Convert(entries []*ldap.Entry) *[]LdapAccount {
-	accounts := []LdapAccount{}
+// Convert ldapsearchの結果をAccount型に変換します。
+func (a Account) ConvertFromLdap(entries []*ldap.Entry) *[]Account {
+	accounts := []Account{}
 	for _, entry := range entries {
-		var account = LdapAccount{}
+		var account = Account{}
 		account.Dn = entry.DN
 		account.UID = entry.GetAttributeValue("uid")
 		account.Email = entry.GetAttributeValue("email")
@@ -48,25 +47,25 @@ func (ldapAccount LdapAccount) Convert(entries []*ldap.Entry) *[]LdapAccount {
 }
 
 // OutJSON jsonファイルに吐き出します
-func (ldapAccount LdapAccount) OutJSON(fileNm string, accounts *[]LdapAccount) (err error) {
+func (a Account) OutJSON(fileNm string, accounts *[]Account) (err error) {
 
 	jsonBytes, err := json.MarshalIndent(accounts, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(fileNm, jsonBytes, os.ModePerm)
+	return ioutil.WriteFile(fileNm, jsonBytes, 0644)
 
 }
 
 // LoadJSON JSONから読み込みます
-func (ldapAccount LdapAccount) LoadJSON(fileNm string) (accouts *[]LdapAccount, err error) {
+func (a Account) LoadJSON(fileNm string) (accouts *[]Account, err error) {
 
 	data, err := ioutil.ReadFile(fileNm)
 	if err != nil {
 		return
 	}
-	var accounts []LdapAccount
+	var accounts []Account
 	err = json.Unmarshal(data, &accounts)
 	if err != nil {
 		return
@@ -75,10 +74,10 @@ func (ldapAccount LdapAccount) LoadJSON(fileNm string) (accouts *[]LdapAccount, 
 }
 
 // Diff 差分をチェックして作成、修正、削除が必要なLdapAccountを返します。
-func (ldapAccount LdapAccount) Diff(old, new *[]LdapAccount) (result map[string][]LdapAccount, err error) {
+func (a Account) Diff(old, new *[]Account) (result map[string][]Account, err error) {
 
-	result = make(map[string][]LdapAccount)
-	commonLdapData := make(map[string]LdapAccount)
+	result = make(map[string][]Account)
+	commonData := make(map[string]Account)
 
 	// oldとnewで同一DNの更新をチェック、差分がある場合は更新リストに追加
 	for _, oldData := range *old {
@@ -86,7 +85,7 @@ func (ldapAccount LdapAccount) Diff(old, new *[]LdapAccount) (result map[string]
 			if oldData.Dn != newData.Dn {
 				continue
 			}
-			commonLdapData[newData.Dn] = newData
+			commonData[newData.Dn] = newData
 			if !reflect.DeepEqual(oldData, newData) {
 				result[UpdateKey] = append(result[UpdateKey], newData)
 			}
@@ -95,13 +94,13 @@ func (ldapAccount LdapAccount) Diff(old, new *[]LdapAccount) (result map[string]
 	}
 	// old側にしか存在しないデータは削除リストに追加
 	for _, data := range *old {
-		if _, ok := commonLdapData[data.Dn]; !ok {
+		if _, ok := commonData[data.Dn]; !ok {
 			result[DeleteKey] = append(result[DeleteKey], data)
 		}
 	}
 	// new側にしか存在しないデータは新規作成リストに追加
 	for _, data := range *new {
-		if _, ok := commonLdapData[data.Dn]; !ok {
+		if _, ok := commonData[data.Dn]; !ok {
 			result[CreateKey] = append(result[CreateKey], data)
 		}
 	}
