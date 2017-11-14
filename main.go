@@ -65,7 +65,7 @@ func main() {
 		FQDN:   os.Getenv("OKTA_FQDN"),
 		APIKEY: os.Getenv("OKTA_APIKEY"),
 	}
-	// oktaUser, oktaErr := oktaClient.GetUser("azuma_kazuhiro@cyberagent.co.jp")
+
 	oktaUser, oktaErr := oktaClient.GetUser("no_user@cyberagent.co.jp")
 	if oktaErr != nil {
 		log.Fatal(oktaErr)
