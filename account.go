@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"reflect"
 
 	"gopkg.in/ldap.v2"
@@ -61,15 +62,17 @@ func (a Account) OutJSON(fileNm string, accounts *[]Account) (err error) {
 // LoadJSON JSONから読み込みます
 func (a Account) LoadJSON(fileNm string) (accouts *[]Account, err error) {
 
-	data, err := ioutil.ReadFile(fileNm)
+	file, err := os.OpenFile(fileNm, os.O_RDONLY|os.O_CREATE, 0644) // 存在しなければ作成
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	data, err := ioutil.ReadAll(file)
 	if err != nil {
 		return
 	}
 	var accounts []Account
-	err = json.Unmarshal(data, &accounts)
-	if err != nil {
-		return
-	}
+	json.Unmarshal(data, &accounts)
 	return &accounts, nil
 }
 

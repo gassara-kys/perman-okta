@@ -51,7 +51,7 @@ func TestConvertAndJSON(t *testing.T) {
 	var account = Account{}
 
 	// Convert
-	convertData := account.Convert(entries)
+	convertData := account.ConvertFromLdap(entries)
 
 	// OutJSON
 	err := account.OutJSON(testFileNm, convertData)
