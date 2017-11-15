@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"time"
 )
 
@@ -26,77 +26,38 @@ type OktaUser struct {
 	LastLogin       time.Time `json:"lastLogin"`
 	LastUpdated     time.Time `json:"lastUpdated"`
 	PasswordChanged time.Time `json:"passwordChanged"`
-	Profile         struct {
-		LastName    string      `json:"lastName"`
-		SecondEmail interface{} `json:"secondEmail"`
-		MobilePhone interface{} `json:"mobilePhone"`
-		Email       string      `json:"email"`
-		Login       string      `json:"login"`
-		FirstName   string      `json:"firstName"`
-	} `json:"profile"`
-	Credentials struct {
-		Password struct {
-		} `json:"password"`
-		RecoveryQuestion struct {
-			Question string `json:"question"`
-		} `json:"recovery_question"`
-		Provider struct {
-			Type string `json:"type"`
-			Name string `json:"name"`
-		} `json:"provider"`
-	} `json:"credentials"`
-	Links struct {
-		Suspend struct {
-			Href   string `json:"href"`
-			Method string `json:"method"`
-		} `json:"suspend"`
-		ResetPassword struct {
-			Href   string `json:"href"`
-			Method string `json:"method"`
-		} `json:"resetPassword"`
-		ExpirePassword struct {
-			Href   string `json:"href"`
-			Method string `json:"method"`
-		} `json:"expirePassword"`
-		ForgotPassword struct {
-			Href   string `json:"href"`
-			Method string `json:"method"`
-		} `json:"forgotPassword"`
-		Self struct {
-			Href string `json:"href"`
-		} `json:"self"`
-		ChangeRecoveryQuestion struct {
-			Href   string `json:"href"`
-			Method string `json:"method"`
-		} `json:"changeRecoveryQuestion"`
-		Deactivate struct {
-			Href   string `json:"href"`
-			Method string `json:"method"`
-		} `json:"deactivate"`
-		ChangePassword struct {
-			Href   string `json:"href"`
-			Method string `json:"method"`
-		} `json:"changePassword"`
-	} `json:"_links"`
+	Profile         `json:"profile"`
 }
 
-// GetUser
-func (okta OktaClient) GetUser(q string) (*[]OktaUser, error) {
+// Profile OktaUser Profile
+type Profile struct {
+	LastName    string      `json:"lastName"`
+	SecondEmail interface{} `json:"secondEmail"`
+	MobilePhone interface{} `json:"mobilePhone"`
+	Email       string      `json:"email"`
+	Login       string      `json:"login"` // must email type format
+	FirstName   string      `json:"firstName"`
+}
 
-	req, _ := http.NewRequest("GET", "https://"+okta.FQDN+"/api/v1/users?q="+q, nil)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "SSWS "+okta.APIKEY)
-	dump, _ := httputil.DumpRequestOut(req, true)
-	log.Printf("%s", dump)
+// CreateUserRequest request body for create
+type CreateUserRequest struct {
+	Profile `json:"profile"`
+}
+
+// GetUserWithLogin Get User with Login API
+func (okta OktaClient) GetUserWithLogin(login string) (*OktaUser, error) {
+
+	req, _ := http.NewRequest("GET", "https://"+okta.FQDN+"/api/v1/users/"+login, nil)
+	okta.setHeader(req)
 
 	client := new(http.Client)
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
-	} else if res.StatusCode == 404 {
-		return &[]OktaUser{}, nil
-	} else if res.StatusCode != 200 {
+	} else if res.StatusCode == http.StatusNotFound {
+		log.Printf("Not Found user: http status %d", res.StatusCode)
+		return &OktaUser{}, nil
+	} else if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Unable to get this url : http status %d", res.StatusCode)
 	}
 
@@ -106,10 +67,62 @@ func (okta OktaClient) GetUser(q string) (*[]OktaUser, error) {
 		return nil, err
 	}
 	// 取得したjsonを構造体へデコード
-	var oktaUser []OktaUser
+	var oktaUser OktaUser
 	if err := json.Unmarshal(body, &oktaUser); err != nil {
 		return nil, err
 	}
 
 	return &oktaUser, nil
+}
+
+// CreateUser Create Activated User without Credentials
+func (okta OktaClient) CreateUser(profile *Profile) (*OktaUser, error) {
+
+	createReq := CreateUserRequest{}
+	createReq.Profile = *profile
+	jsonBytes, err := json.Marshal(createReq)
+	if err != nil {
+		return nil, err
+	}
+	req, _ := http.NewRequest(
+		"POST",
+		"https://"+okta.FQDN+"/api/v1/users?activate=true",
+		bytes.NewBuffer(jsonBytes),
+	)
+	okta.setHeader(req)
+
+	client := new(http.Client)
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf(
+			"Could not create user: http status %d: http body :%s ",
+			res.StatusCode,
+			body,
+		)
+	}
+
+	// 取得したjsonを構造体へデコード
+	oktaUser := OktaUser{}
+	if err := json.Unmarshal(body, &oktaUser); err != nil {
+		return nil, err
+	}
+
+	return &oktaUser, nil
+}
+
+// set Common HTTP Header
+func (okta OktaClient) setHeader(req *http.Request) {
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "SSWS "+okta.APIKEY)
+
 }

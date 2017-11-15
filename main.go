@@ -66,13 +66,29 @@ func main() {
 		APIKEY: os.Getenv("OKTA_APIKEY"),
 	}
 
-	oktaUser, oktaErr := oktaClient.GetUser("no_user@cyberagent.co.jp")
+	// get
+	oktaUser, oktaErr := oktaClient.GetUserWithLogin("ogasawara_kiyoshi+0002@cyberagent.co.jp")
 	if oktaErr != nil {
 		log.Fatal(oktaErr)
 	}
-
 	jsonByte, _ := json.MarshalIndent(oktaUser, "", "  ")
-	log.Printf("user count: %d", len(*oktaUser))
-	log.Printf("%s", jsonByte)
+	log.Printf("find user:\n%s", jsonByte)
+
+	// create
+	createUser, oktaErr := oktaClient.CreateUser(
+		&Profile{
+			LastName:    "OgasawaraTest",
+			SecondEmail: "",
+			MobilePhone: "",
+			Email:       "ogasawara_kiyoshi+0002@cyberagent.co.jp",
+			Login:       "ogasawara_kiyoshi+0002@cyberagent.co.jp",
+			FirstName:   "OgasawaraTest",
+		},
+	)
+	if oktaErr != nil {
+		log.Fatal(oktaErr)
+	}
+	jsonByte, _ = json.MarshalIndent(createUser, "", "  ")
+	log.Printf("create user:\n%s", jsonByte)
 
 }
