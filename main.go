@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -14,6 +16,7 @@ const (
 )
 
 func main() {
+	EnvLoad(".env")
 	// ldapsearch
 	ldapClient := LdapClient{
 		Host:       os.Getenv("LDAP_HOST"),
@@ -138,4 +141,15 @@ func main() {
 		log.Fatal(oktaErr)
 	}
 
+}
+
+// EnvLoad .env load
+func EnvLoad(envFile string) {
+	if envFile == "" {
+		envFile = ".env" // default
+	}
+	err := godotenv.Load(envFile)
+	if err != nil {
+		log.Fatalf("Error loading %s file", envFile)
+	}
 }
