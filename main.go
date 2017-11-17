@@ -66,29 +66,76 @@ func main() {
 		APIKEY: os.Getenv("OKTA_APIKEY"),
 	}
 
-	// get
-	oktaUser, oktaErr := oktaClient.GetUserWithLogin("ogasawara_kiyoshi+0002@cyberagent.co.jp")
-	if oktaErr != nil {
-		log.Fatal(oktaErr)
-	}
-	jsonByte, _ := json.MarshalIndent(oktaUser, "", "  ")
-	log.Printf("find user:\n%s", jsonByte)
+	var jsonByte []byte
+	var oktaErr error
+	var oktaUser *OktaUser
+	var oktaGroup *OktaGroup
 
-	// create
-	createUser, oktaErr := oktaClient.CreateUser(
-		&Profile{
-			LastName:    "OgasawaraTest",
+	// Create User
+	oktaUser, oktaErr = oktaClient.CreateUser(
+		&UserProfile{
+			LastName:    "OgasawaraTest006",
 			SecondEmail: "",
 			MobilePhone: "",
-			Email:       "ogasawara_kiyoshi+0002@cyberagent.co.jp",
-			Login:       "ogasawara_kiyoshi+0002@cyberagent.co.jp",
-			FirstName:   "OgasawaraTest",
+			Email:       "ogasawara_kiyoshi+006@cyberagent.co.jp",
+			Login:       "ogasawara_kiyoshi+006@cyberagent.co.jp",
+			FirstName:   "OgasawaraTest006",
 		},
 	)
 	if oktaErr != nil {
 		log.Fatal(oktaErr)
 	}
-	jsonByte, _ = json.MarshalIndent(createUser, "", "  ")
+	jsonByte, _ = json.MarshalIndent(oktaUser, "", "  ")
 	log.Printf("create user:\n%s", jsonByte)
+
+	// Get User
+	oktaUser, oktaErr = oktaClient.GetUserWithLogin("ogasawara_kiyoshi+006@cyberagent.co.jp")
+	if oktaErr != nil {
+		log.Fatal(oktaErr)
+	}
+	jsonByte, _ = json.MarshalIndent(oktaUser, "", "  ")
+	log.Printf("find user:\n%s", jsonByte)
+
+	// Create Group
+	oktaGroup, oktaErr = oktaClient.AddGroup(
+		&GroupProfile{
+			Name:        "oga-test-group-006",
+			Description: "oga-test-group-006",
+		},
+	)
+	if oktaErr != nil {
+		log.Fatal(oktaErr)
+	}
+	jsonByte, _ = json.MarshalIndent(oktaGroup, "", "  ")
+	log.Printf("create group:\n%s", jsonByte)
+
+	// Search Group
+	oktaGroup, oktaErr = oktaClient.SearchGroups("oga-test-group-006")
+	if oktaErr != nil {
+		log.Fatal(oktaErr)
+	}
+	jsonByte, _ = json.MarshalIndent(oktaGroup, "", "  ")
+	log.Printf("find group:\n%s", jsonByte)
+
+	// Add member to Group
+	oktaErr = oktaClient.AddUserToGroup(oktaGroup.ID, oktaUser.ID)
+	if oktaErr != nil {
+		log.Fatal(oktaErr)
+	}
+
+	// Remove member from Group
+	oktaErr = oktaClient.RemoveUserFromGroup(oktaGroup.ID, oktaUser.ID)
+	if oktaErr != nil {
+		log.Fatal(oktaErr)
+	}
+
+	// Delete Group
+	// oktaErr = oktaClient.RemoveGroup(oktaGroup.ID)
+
+	// Delete User
+	// oktaErr = oktaClient.DeleteUser(oktaUser.ID)
+	if oktaErr != nil {
+		log.Fatal(oktaErr)
+	}
 
 }
